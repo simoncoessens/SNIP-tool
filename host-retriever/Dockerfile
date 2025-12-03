@@ -21,62 +21,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY api/ ./api/
 COPY knowledge_base/ ./knowledge_base/
 
-# Create Qdrant storage directory and config
-RUN mkdir -p /app/qdrant_storage && \
-    cat > /app/qdrant-config.yaml << 'EOF'
-log_level: INFO
-storage:
-storage_path: /app/qdrant_storage
-service:
-http_port: 6333
-grpc_port: 6334
-EOF
+# Create Qdrant storage directory
+RUN mkdir -p /app/qdrant_storage
 
-# Copy startup script
+# Copy startup scripts
 COPY startup.py ./startup.py
-
-# Create startup script
-RUN echo '#!/bin/bash\n\
-    set -e\n\
-    \n\
-    # Start Qdrant in background\n\
-    echo "Starting Qdrant..."\n\
-    qdrant --config-path /app/qdrant-config.yaml > /tmp/qdrant.log 2>&1 &\n\
-    QDRANT_PID=$!\n\
-    echo "Qdrant started with PID $QDRANT_PID"\n\
-    \n\
-    # Wait for Qdrant to be ready\n\
-    echo "Waiting for Qdrant to be ready..."\n\
-    QDRANT_READY=false\n\
-    for i in {1..60}; do\n\
-    if curl -s http://localhost:6333/health > /dev/null 2>&1; then\n\
-    echo "✓ Qdrant is ready!"\n\
-    QDRANT_READY=true\n\
-    break\n\
-    fi\n\
-    if [ $((i % 5)) -eq 0 ]; then\n\
-    echo "Still waiting for Qdrant... (${i}s)"\n\
-    fi\n\
-    sleep 1\n\
-    done\n\
-    \n\
-    if [ "$QDRANT_READY" = false ]; then\n\
-    echo "✗ Qdrant failed to start. Logs:"\n\
-    tail -20 /tmp/qdrant.log\n\
-    exit 1\n\
-    fi\n\
-    \n\
-    # Ensure knowledge base is populated\n\
-    echo "Checking knowledge base..."\n\
-    python startup.py || echo "⚠ Ingestion had issues, continuing anyway..."\n\
-    \n\
-    # Start the API\n\
-    echo "Starting API server..."\n\
-    exec uvicorn api.main:app --host 0.0.0.0 --port 8000\n\
-    ' > /app/start.sh && chmod +x /app/start.sh
+COPY start.sh ./start.sh
+RUN chmod +x /app/start.sh
 
 # Expose ports
-EXPOSE 8000 6333 6334
+EXPOSE 8000
 
 # Use startup script
 CMD ["/app/start.sh"]

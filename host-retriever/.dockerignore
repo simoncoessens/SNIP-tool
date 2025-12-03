@@ -11,5 +11,7 @@ build/
 .env
 .git/
 .gitignore
-README.md
+*.md
+qdrant_storage/
+.dockerignore
 
