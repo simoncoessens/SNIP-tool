@@ -23,13 +23,14 @@ COPY knowledge_base/ ./knowledge_base/
 
 # Create Qdrant storage directory and config
 RUN mkdir -p /app/qdrant_storage && \
-    echo 'log_level: INFO\n\
-    storage:\n\
-    storage_path: /app/qdrant_storage\n\
-    service:\n\
-    http_port: 6333\n\
-    grpc_port: 6334\n\
-    ' > /app/qdrant-config.yaml
+    cat > /app/qdrant-config.yaml << 'EOF'
+log_level: INFO
+storage:
+storage_path: /app/qdrant_storage
+service:
+http_port: 6333
+grpc_port: 6334
+EOF
 
 # Copy startup script
 COPY startup.py ./startup.py
