@@ -40,23 +40,34 @@ RUN echo '#!/bin/bash\n\
     \n\
     # Start Qdrant in background\n\
     echo "Starting Qdrant..."\n\
-    qdrant --config-path /app/qdrant-config.yaml &\n\
+    qdrant --config-path /app/qdrant-config.yaml > /tmp/qdrant.log 2>&1 &\n\
     QDRANT_PID=$!\n\
     echo "Qdrant started with PID $QDRANT_PID"\n\
     \n\
     # Wait for Qdrant to be ready\n\
     echo "Waiting for Qdrant to be ready..."\n\
-    for i in {1..30}; do\n\
-    if curl -s http://localhost:6333/health > /dev/null; then\n\
-    echo "Qdrant is ready!"\n\
+    QDRANT_READY=false\n\
+    for i in {1..60}; do\n\
+    if curl -s http://localhost:6333/health > /dev/null 2>&1; then\n\
+    echo "✓ Qdrant is ready!"\n\
+    QDRANT_READY=true\n\
     break\n\
+    fi\n\
+    if [ $((i % 5)) -eq 0 ]; then\n\
+    echo "Still waiting for Qdrant... (${i}s)"\n\
     fi\n\
     sleep 1\n\
     done\n\
     \n\
+    if [ "$QDRANT_READY" = false ]; then\n\
+    echo "✗ Qdrant failed to start. Logs:"\n\
+    tail -20 /tmp/qdrant.log\n\
+    exit 1\n\
+    fi\n\
+    \n\
     # Ensure knowledge base is populated\n\
     echo "Checking knowledge base..."\n\
-    python startup.py\n\
+    python startup.py || echo "⚠ Ingestion had issues, continuing anyway..."\n\
     \n\
     # Start the API\n\
     echo "Starting API server..."\n\
