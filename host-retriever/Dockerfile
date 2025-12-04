@@ -17,6 +17,9 @@ RUN curl -L https://github.com/qdrant/qdrant/releases/download/v1.11.0/qdrant-x8
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy cached DSA HTML snapshot
+COPY dsa.html /app/dsa.html
+
 # Copy application code
 COPY api/ ./api/
 COPY knowledge_base/ ./knowledge_base/
