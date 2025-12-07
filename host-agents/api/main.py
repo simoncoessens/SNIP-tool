@@ -82,7 +82,7 @@ for name, graph in graphs.items():
         app,
         graph,
         path=f"/{name}",
-        playground_type="chat",
+        playground_type="default",
     )
 
 # Landing Page
