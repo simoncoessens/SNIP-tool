@@ -30,9 +30,16 @@ host-retriever/
 
 ## Local Testing
 
+Since this service imports code from the `backend/` directory, you must build the Docker image from the **repository root**.
+
 ```bash
-cd host-retriever
-docker build -t dsa-retriever .
+# Go to repo root
+cd ..
+
+# Build from root context
+docker build -f host-retriever/Dockerfile -t dsa-retriever .
+
+# Run
 docker run -p 8000:8000 -e OPENAI_API_KEY=your-key dsa-retriever
 ```
 
