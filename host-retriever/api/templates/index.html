@@ -257,12 +257,15 @@
             font-size: 0.9375rem;
             color: var(--text-muted);
             line-height: 1.7;
-            max-height: 150px;
             overflow: hidden;
             position: relative;
         }
+
+        .result-content.collapsed {
+            max-height: 150px;
+        }
         
-        .result-content::after {
+        .result-content.collapsed::after {
             content: '';
             position: absolute;
             bottom: 0;
@@ -270,6 +273,23 @@
             right: 0;
             height: 40px;
             background: linear-gradient(transparent, var(--surface));
+            pointer-events: none;
+        }
+
+        .show-more-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            padding: 0;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .show-more-btn:hover {
+            color: var(--accent-hover);
+            background: none;
         }
         
         .loading {
@@ -467,7 +487,7 @@
                 <div class="results-header">
                     <span class="results-count">${data.count} result${data.count !== 1 ? 's' : ''} for "${data.query}"</span>
                 </div>
-                ${data.results.map(r => `
+                ${data.results.map((r, index) => `
                     <div class="result-card">
                         <div class="result-header">
                             <span class="result-title">${escapeHtml(r.title)}</span>
@@ -478,12 +498,28 @@
                             <span class="tag">${escapeHtml(r.section)}</span>
                             <span class="tag">${escapeHtml(r.chunk_type)}</span>
                         </div>
-                        <div class="result-content">${escapeHtml(r.content)}</div>
+                        <div class="result-content collapsed" id="content-${index}">
+                            ${escapeHtml(r.content).replace(/\n/g, '<br>')}
+                        </div>
+                        <button class="show-more-btn" onclick="toggleContent(${index})" id="btn-${index}">Show full content</button>
                     </div>
                 `).join('')}
             `;
             
             resultsDiv.innerHTML = html;
+        }
+
+        function toggleContent(index) {
+            const content = document.getElementById(`content-${index}`);
+            const btn = document.getElementById(`btn-${index}`);
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                btn.textContent = 'Show less';
+            } else {
+                content.classList.add('collapsed');
+                btn.textContent = 'Show full content';
+            }
         }
         
         function escapeHtml(text) {
