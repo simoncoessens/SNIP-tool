@@ -53,13 +53,21 @@ def download_dsa_html() -> str:
     try:
         if LOCAL_DSA_HTML_PATH:
             path = Path(LOCAL_DSA_HTML_PATH)
+            # Check if file exists in the same directory as this module
+            if not path.is_file():
+                # Fallback: check relative to module location (for when running in Docker/different contexts)
+                path = Path(__file__).parent / "dsa.html"
+            
             if path.is_file() and path.stat().st_size > 0:
+                print(f"Loading DSA from local file: {path}")
                 with path.open("r", encoding="utf-8") as f:
                     return f.read()
-    except Exception:
+    except Exception as e:
+        print(f"Error reading local file: {e}")
         # Ignore local file errors and fallback to network
         pass
 
+    print("Downloading DSA from EUR-Lex...")
     # Fallback: download from EUR-Lex
     response = httpx.get(DSA_URL, follow_redirects=True, timeout=60.0)
     response.raise_for_status()
