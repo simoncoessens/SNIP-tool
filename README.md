@@ -71,38 +71,6 @@ Compliance dashboard – action items export:
 - Phase 3: `ServiceClassification` posts the curated profile to the categorizer; `ComplianceDashboard` renders applicability and action items for each obligation.
 - Chat sidecar (`Chatbot`) feeds `frontend_context` to the main agent so answers stay aligned with the active company and phase.
 
-## Screens (chronological)
-
-Landing:
-![Landing](pdf_v0/Screenshot%202025-12-08%20at%2011.29.58.png)
-
-Initial CTA / flow selection:
-![Flow selection](pdf_v0/Screenshot%202025-12-08%20at%2011.30.08.png)
-
-Assessment overview:
-![Assessment overview](pdf_v0/Screenshot%202025-12-08%20at%2011.31.02.png)
-
-Research review – scope confirmation:
-![Research review (scope)](pdf_v0/Screenshot%202025-12-08%20at%2011.31.32.png)
-
-Research review – size confirmation:
-![Research review (size)](pdf_v0/Screenshot%202025-12-08%20at%2011.31.55.png)
-
-Research in progress:
-![Research progress](pdf_v0/Screenshot%202025-12-08%20at%2011.36.50.png)
-
-Research summary:
-![Research summary](pdf_v0/Screenshot%202025-12-08%20at%2011.37.45.png)
-
-Compliance dashboard – obligations list:
-![Compliance dashboard (list)](pdf_v0/Screenshot%202025-12-08%20at%2011.37.56.png)
-
-Compliance dashboard – obligation detail:
-![Compliance dashboard (detail)](pdf_v0/Screenshot%202025-12-08%20at%2011.39.10.png)
-
-Compliance dashboard – action items export:
-![Compliance dashboard (actions)](pdf_v0/Screenshot%202025-12-08%20at%2011.40.15.png)
-
 ## 🏗️ Design Principles
 
 ### Prompting with Jinja Templates (brief)
