@@ -52,7 +52,7 @@ export function Hero() {
         >
           <div
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: "url('/background.avif')" }}
+            style={{ backgroundImage: "url('/background.png')" }}
           />
           {/* Gradient overlay for text readability */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#fafaf9]/90 via-[#fafaf9]/70 to-[#fafaf9]/95" />

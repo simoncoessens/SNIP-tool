@@ -31,7 +31,7 @@ export default function HomePage() {
           >
             <div
               className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-              style={{ backgroundImage: "url('/background.avif')" }}
+              style={{ backgroundImage: "url('/background.png')" }}
             />
             <div className="absolute inset-0 bg-[#fafaf9]/85" />
           </motion.div>
