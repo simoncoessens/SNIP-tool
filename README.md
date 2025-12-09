@@ -12,9 +12,6 @@
 
 ## Screens first version
 
-Landing:
-![Landing](pdf_v0/Screenshot%202025-12-08%20at%2011.29.58.png)
-
 Initial CTA / flow selection:
 ![Flow selection](pdf_v0/Screenshot%202025-12-08%20at%2011.30.08.png)
 
