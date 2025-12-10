@@ -21,7 +21,7 @@ export function Footer() {
               <Scale className="w-5 h-5 text-white" strokeWidth={1.5} />
             </div>
             <div>
-              <span className="font-serif text-xl text-white">snip-tool</span>
+              <span className="font-serif text-xl text-white">Corinna</span>
               <p className="font-mono text-[10px] uppercase tracking-wider text-[#78716c]">
                 DSA Compliance Navigator
               </p>
@@ -37,7 +37,7 @@ export function Footer() {
             className="text-center md:text-right"
           >
             <p className="font-sans text-sm text-[#78716c]">
-              © {currentYear} snip-tool. All rights reserved.
+              © {currentYear} Corinna. All rights reserved.
             </p>
             <p className="font-mono text-[10px] text-[#57534e] mt-1">
               This tool provides informational guidance only and does not

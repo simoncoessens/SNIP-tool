@@ -113,6 +113,7 @@ async def stream_agent_events(
     Uses astream_events to capture all tokens, tool calls, and node executions.
     This captures events from all nested agents and subgraphs.
     """
+    done_data = {'type': 'done'}
     try:
         # Stream events with version="v2" to get all nested events including subagents
         async for event in graph.astream_events(

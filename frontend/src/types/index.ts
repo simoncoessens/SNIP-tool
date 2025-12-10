@@ -1,5 +1,5 @@
 /**
- * SNIP-tool Type Exports
+ * Corinna Type Exports
  */
 
 export * from "./api";

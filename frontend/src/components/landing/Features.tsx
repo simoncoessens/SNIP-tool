@@ -82,7 +82,7 @@ export function Features() {
             </span>
           </h2>
           <p className="mt-6 font-sans text-lg text-[#57534e] leading-relaxed">
-            SNIP-tool employs a multi-agent architecture to deliver thorough,
+            Corinna employs a multi-agent architecture to deliver thorough,
             legally-grounded compliance assessments that would traditionally
             require extensive legal consultation.
           </p>

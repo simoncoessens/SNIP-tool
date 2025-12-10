@@ -24,7 +24,7 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "snip-tool | DSA Compliance Navigator",
+  title: "Corinna | DSA Compliance Navigator",
   description:
     "Navigate the Digital Services Act with precision. Autonomous compliance assessment for digital service providers operating in the European Union.",
   keywords: [
@@ -36,9 +36,9 @@ export const metadata: Metadata = {
     "VLOP",
     "online platform",
   ],
-  authors: [{ name: "snip-tool" }],
+  authors: [{ name: "Corinna" }],
   openGraph: {
-    title: "snip-tool | DSA Compliance Navigator",
+    title: "Corinna | DSA Compliance Navigator",
     description:
       "Navigate the Digital Services Act with precision. Autonomous compliance assessment for digital service providers.",
     type: "website",

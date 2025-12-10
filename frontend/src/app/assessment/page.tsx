@@ -306,7 +306,7 @@ export default function AssessmentPage() {
       <header className="shrink-0 bg-[#fafaf9]/80 backdrop-blur-lg border-b border-[#e7e5e4]">
         <div className="px-6 h-14 flex items-center">
           <Link href="/" className="flex items-center">
-            <span className="font-serif text-lg text-[#0a0a0a]">snip-tool</span>
+            <span className="font-serif text-lg text-[#0a0a0a]">Corinna</span>
           </Link>
 
           <div className="flex-1 flex justify-center">

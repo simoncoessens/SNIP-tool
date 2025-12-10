@@ -1,5 +1,5 @@
 /**
- * Utility functions for SNIP-tool
+ * Utility functions for Corinna
  */
 
 import { clsx, type ClassValue } from "clsx";

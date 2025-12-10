@@ -1,5 +1,5 @@
 /**
- * SNIP-tool API Service
+ * Corinna API Service
  * Handles all communication with the backend
  */
 

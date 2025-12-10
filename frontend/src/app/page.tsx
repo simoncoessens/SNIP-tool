@@ -68,7 +68,7 @@ export default function HomePage() {
                   transition={{ duration: 0.8, delay: 0.2 }}
                   className="font-serif text-6xl sm:text-7xl text-[#0a0a0a] mb-8"
                 >
-                  snip-tool
+                  Corinna
                 </motion.h1>
 
                 {/* Description */}

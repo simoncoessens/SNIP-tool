@@ -37,7 +37,7 @@ class Configuration(BaseModel):
         metadata={"description": "Max tool-calling iterations per research question"}
     )
     max_search_results: int = Field(
-        default=3,
+        default=10,
         metadata={"description": "Max search results per query"}
     )
     max_search_queries: int = Field(
@@ -49,7 +49,7 @@ class Configuration(BaseModel):
         metadata={"description": "Max chars of content before truncation"}
     )
     max_concurrent_research: int = Field(
-        default=2,
+        default=17,
         metadata={"description": "Max sub-questions to research in parallel"}
     )
 

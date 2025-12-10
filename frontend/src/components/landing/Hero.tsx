@@ -106,9 +106,9 @@ export function Hero() {
             variants={itemVariants}
             className="mt-8 font-sans text-lg sm:text-xl text-[#57534e] max-w-2xl leading-relaxed"
           >
-            SNIP-tool conducts autonomous compliance assessments under the
-            Digital Services Act, determining your regulatory obligations with
-            precision and providing actionable guidance grounded in EU law.
+            Corinna conducts autonomous compliance assessments under the Digital
+            Services Act, determining your regulatory obligations with precision
+            and providing actionable guidance grounded in EU law.
           </motion.p>
 
           {/* CTA Buttons */}

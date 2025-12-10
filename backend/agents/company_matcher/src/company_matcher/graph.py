@@ -14,6 +14,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
+from langgraph.prebuilt import ToolNode, tools_condition
 
 from company_matcher.models import CompanyMatch, CompanyMatchResult
 from company_matcher.state import CompanyMatcherInputState, CompanyMatcherState
@@ -54,15 +55,15 @@ async def web_search(queries: List[str], config: RunnableConfig = None) -> str:
     """Search the web for company information using multiple queries.
     
     Args:
-        queries: List of search queries to execute (max 3)
+        queries: List of search queries to execute (max 5)
         config: Runtime configuration
     
     Returns:
         Formatted search results
     """
     return await tavily_search_tool(
-        queries=queries[:3],
-        max_results=5,
+        queries=queries[:MAX_QUERIES_PER_CALL],
+        max_results=10,
         config=config,
     )
 
@@ -85,12 +86,13 @@ def finish_matching(result_json: str) -> str:
 
 
 # =============================================================================
-# ReAct Agent
+# Graph Nodes
 # =============================================================================
 
 # Configuration constants
-MAX_ITERATIONS = 5
+MAX_ITERATIONS = 1
 MAX_SUGGESTIONS = 3
+MAX_QUERIES_PER_CALL = 5  # Maximum queries per web_search call
 
 
 def _extract_company_name(messages: list) -> str:
@@ -102,13 +104,32 @@ def _extract_company_name(messages: list) -> str:
     raise ValueError("No company name found. Please provide the company name.")
 
 
-async def search_and_match(
+TOOLS = [web_search, finish_matching]
+tool_node = ToolNode(TOOLS)
+
+
+async def prepare_prompt(
     state: CompanyMatcherState, config: RunnableConfig | None = None
 ) -> dict:
-    """ReAct agent that searches and matches company names."""
+    """Build the formatted prompt so the agent always starts from the same context."""
     company_name = _extract_company_name(state.get("messages", []))
-    
-    # Get API key and base URL from config if available
+    prompt = load_prompt(
+        "prompt.jinja",
+        company_name=company_name,
+        max_iterations=MAX_ITERATIONS,
+        max_suggestions=MAX_SUGGESTIONS,
+        max_queries_per_call=MAX_QUERIES_PER_CALL,
+    )
+    return {
+        "company_name": company_name,
+        "messages": [HumanMessage(content=prompt)],
+    }
+
+
+async def run_agent(
+    state: CompanyMatcherState, config: RunnableConfig | None = None
+) -> dict:
+    """LLM step that decides whether to call tools or produce a final answer."""
     api_key = None
     base_url = None
     if config:
@@ -118,128 +139,54 @@ async def search_and_match(
     else:
         api_key = os.getenv("OPENAI_API_KEY")
         base_url = os.getenv("OPENAI_BASE_URL")
-    
-    # Set up model with tools
+
     model = ChatOpenAI(
         model="deepseek-chat",
         api_key=api_key,
         base_url=base_url,
         max_tokens=2000,
-    )
-    
-    tools = [web_search, finish_matching]
-    model_with_tools = model.bind_tools(tools)
-    
-    # Load prompt from Jinja template
-    prompt = load_prompt(
-        "prompt.jinja",
-        company_name=company_name,
-        max_iterations=MAX_ITERATIONS,
-        max_suggestions=MAX_SUGGESTIONS,
-    )
+    ).bind_tools(TOOLS)
 
-    messages = [
-        {"role": "user", "content": prompt},
-    ]
-    
-    # ReAct loop (max iterations to prevent runaway)
-    match_result = None
-    finished = False
-    
-    for iteration in range(MAX_ITERATIONS):
-        try:
-            response = await model_with_tools.ainvoke(messages)
-            messages.append(response)
-            
-            # Check if there are tool calls
-            if not response.tool_calls:
-                # No tool calls - just continue the conversation
-                continue
-            
-            # Process tool calls
-            for tool_call in response.tool_calls:
-                tool_name = tool_call["name"]
-                tool_args = tool_call["args"]
-                
-                if tool_name == "finish_matching":
-                    # Extract the JSON result
-                    result_json = tool_args.get("result_json", "{}")
-                    messages.append(ToolMessage(
-                        content=f"Matching complete: {result_json}",
-                        tool_call_id=tool_call["id"],
-                    ))
-                    match_result = result_json
-                    finished = True
-                    break
-                
-                elif tool_name == "web_search":
-                    # Execute search
-                    try:
-                        result = await web_search.ainvoke(tool_args, config)
-                    except Exception as e:
-                        result = f"Search error: {str(e)[:100]}"
-                    
-                    messages.append(ToolMessage(
-                        content=str(result),
-                        tool_call_id=tool_call["id"],
-                    ))
-                
-                else:
-                    # Unknown tool
-                    messages.append(ToolMessage(
-                        content=f"Unknown tool: {tool_name}",
-                        tool_call_id=tool_call["id"],
-                    ))
-            
-            if finished:
-                break
+    response = await model.ainvoke(state["messages"], config=config)
+    return {"messages": [response]}
 
-        except Exception as e:
-            match_result = f'{{"error": "Matching failed: {str(e)[:100]}"}}'
-            break
 
-        if finished:
-            break
-    
-    # Parse the result JSON
-    if match_result:
-        try:
-            # Extract JSON if wrapped in text
-            if "{" in match_result:
-                json_start = match_result.find("{")
-                json_end = match_result.rfind("}") + 1
-                match_result = match_result[json_start:json_end]
-            
-            parsed = json.loads(match_result)
-        except (json.JSONDecodeError, AttributeError):
-            # Fallback: create a basic result
-            parsed = {
-                "exact_match": None,
-                "suggestions": []
-            }
-    else:
-        parsed = {
-            "exact_match": None,
-            "suggestions": []
-        }
-    
-    # Build result model
+def _parse_result_from_messages(messages: list[str | AIMessage | ToolMessage]) -> str:
+    """Extract the most recent JSON-looking payload from the conversation."""
+    for message in reversed(messages):
+        content = getattr(message, "content", message)
+        if isinstance(content, str) and "{" in content:
+            json_start = content.find("{")
+            json_end = content.rfind("}") + 1
+            return content[json_start:json_end]
+    return "{}"
+
+
+async def finalize_result(
+    state: CompanyMatcherState, config: RunnableConfig | None = None
+) -> dict:
+    """Normalize the agent output to the expected CompanyMatchResult."""
+    company_name = state.get("company_name", "")
+    raw_json = _parse_result_from_messages(state.get("messages", []))
+
+    try:
+        parsed = json.loads(raw_json)
+    except json.JSONDecodeError:
+        parsed = {"exact_match": None, "suggestions": []}
+
     exact_match = None
     if parsed.get("exact_match"):
         exact_match = CompanyMatch(**parsed["exact_match"])
-    
-    suggestions = [
-        CompanyMatch(**s) for s in parsed.get("suggestions", [])
-    ]
-    
+
+    suggestions = [CompanyMatch(**s) for s in parsed.get("suggestions", [])]
+
     result = CompanyMatchResult(
-        input_name=company_name,
+        input_name=company_name or "Unknown",
         exact_match=exact_match,
         suggestions=suggestions,
     )
-    
+
     json_output = result.to_json()
-    
     return {
         "company_name": company_name,
         "match_result": json_output,
@@ -256,10 +203,23 @@ _builder = StateGraph(
     input=CompanyMatcherInputState,
 )
 
-_builder.add_node("search_and_match", search_and_match)
+_builder.add_node("prepare_prompt", prepare_prompt)
+_builder.add_node("agent", run_agent)
+_builder.add_node("tools", tool_node)
+_builder.add_node("finalize", finalize_result)
 
-_builder.add_edge(START, "search_and_match")
-_builder.add_edge("search_and_match", END)
+_builder.add_edge(START, "prepare_prompt")
+_builder.add_edge("prepare_prompt", "agent")
+_builder.add_conditional_edges(
+    "agent",
+    tools_condition,
+    {
+        "tools": "tools",
+        END: "finalize",
+    },
+)
+_builder.add_edge("tools", "agent")
+_builder.add_edge("finalize", END)
 
 # Export the compiled graph
 company_matcher = _builder.compile()

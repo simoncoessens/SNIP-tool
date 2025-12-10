@@ -1,5 +1,5 @@
 /**
- * SNIP-tool Hooks Exports
+ * Corinna Hooks Exports
  */
 
 export { useStreamingResponse } from "./useStreamingResponse";

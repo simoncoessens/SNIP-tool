@@ -1,5 +1,5 @@
 /**
- * SNIP-tool API Types
+ * Corinna API Types
  * Type definitions for backend API integration
  */
 

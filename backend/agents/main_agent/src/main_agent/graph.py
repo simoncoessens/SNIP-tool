@@ -14,7 +14,7 @@ from langchain_core.messages import AIMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
-from langgraph.prebuilt import ToolNode
+from langgraph.prebuilt import ToolNode, tools_condition
 
 from main_agent.configuration import Configuration
 from main_agent.state import MainAgentInputState, MainAgentState
@@ -92,25 +92,16 @@ async def agent(state: MainAgentState, config: RunnableConfig | None = None) -> 
     system_msg = SystemMessage(content=system_prompt)
     messages = [system_msg] + list(state.get("messages", []))
     
-    response = await model_with_tools.ainvoke(messages)
+    response = await model_with_tools.ainvoke(messages, config=config)
     
     return {"messages": [response]}
 
 
-# =============================================================================
-# Routing
-# =============================================================================
-
-def should_continue(state: MainAgentState) -> Literal["tools", "end"]:
-    """Check if we should continue to tools or end."""
-    messages = state.get("messages", [])
-    if not messages:
-        return "end"
-    
-    last_msg = messages[-1]
-    if isinstance(last_msg, AIMessage) and last_msg.tool_calls:
-        return "tools"
-    return "end"
+async def finalize(state: MainAgentState, config: RunnableConfig | None = None) -> dict:
+    """Pass-through finalize node so LangGraph Dev shows a terminal step."""
+    return {
+        "messages": state.get("messages", []),
+    }
 
 
 # =============================================================================
@@ -128,10 +119,16 @@ _builder = StateGraph(
 
 _builder.add_node("agent", agent)
 _builder.add_node("tools", tool_node)
+_builder.add_node("finalize", finalize)
 
 _builder.add_edge(START, "agent")
-_builder.add_conditional_edges("agent", should_continue, {"tools": "tools", "end": END})
+_builder.add_conditional_edges(
+    "agent",
+    tools_condition,
+    {"tools": "tools", END: "finalize"},
+)
 _builder.add_edge("tools", "agent")
+_builder.add_edge("finalize", END)
 
 # Export
 main_agent = _builder.compile()

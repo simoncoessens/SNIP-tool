@@ -6,7 +6,7 @@
 
 <br>
 
-**snip-project** is an agentic Digital Services Act self-assessment tool built with LangGraph. It is being built by Simon Coessens in collaboration with Vittorio Franzese (legal lead; PhD in AI & Law at the University of Tübingen), under PI Prof. Antonio Davola, as part of the PRIN PNRR 2022 – SNIP “Self-Assessment Network Impact Program” during an External Expert engagement (Università degli Studi di Bari, Jun–Nov 2025). Project context: [SNIP Project](https://www.antoniodavola.com/snip/).
+**Corinna** is an agentic Digital Services Act self-assessment tool built with LangGraph. It is being built by Simon Coessens in collaboration with Vittorio Franzese (legal lead; PhD in AI & Law at the University of Tübingen), under PI Prof. Antonio Davola, as part of the PRIN PNRR 2022 – SNIP “Self-Assessment Network Impact Program” during an External Expert engagement (Università degli Studi di Bari, Jun–Nov 2025). Project context: [SNIP Project](https://www.antoniodavola.com/snip/).
 
 **TL;DR**: EU digital regulation is dense. This tool determines whether a company is in-scope for the Digital Services Act, assigns the correct service category, and explains which obligations matter for that company.
 
@@ -141,7 +141,7 @@ Example multi-turn template (system prompt only):
     - context: Optional frontend context
 #}
 
-You are the snip-project assistant.
+You are the Corinna assistant.
 
 ## Guidelines
 - Cite specific DSA articles
