@@ -48,19 +48,31 @@ def load_prompt(template_name: str, **kwargs) -> str:
 # =============================================================================
 
 @tool
-async def web_search(queries: List[str], config: RunnableConfig = None) -> str:
-    """Search the web for information using multiple queries.
+async def web_search(queries: List[str], config: RunnableConfig) -> str:
+    """Search the web for information. Only the first query in the list will be executed.
     
     Args:
-        queries: List of search queries to execute (max 3)
-        config: Runtime configuration
+        queries: List of search queries. IMPORTANT: Only the first query will be executed (max_search_queries=1).
+                 Use separate tool calls for different queries if needed.
+        config: Runtime configuration (automatically injected by LangGraph)
     
     Returns:
-        Formatted search results
+        Formatted search results from a single search query
     """
-    cfg = Configuration.from_runnable_config(config) if config else Configuration()
+    # Get config from RunnableConfig (automatically injected by ToolNode)
+    cfg = Configuration.from_runnable_config(config)
+    
+    # Enforce max_search_queries limit (default is 1)
+    max_queries = cfg.max_search_queries
+    # Ensure we have a positive limit
+    if max_queries <= 0:
+        max_queries = 1
+    
+    # Truncate queries to the limit - only process first max_queries queries
+    limited_queries = queries[:max_queries]
+    
     return await tavily_search_tool(
-        queries=queries[:cfg.max_search_queries],
+        queries=limited_queries,
         max_results=cfg.max_search_results,
         config=config,
     )

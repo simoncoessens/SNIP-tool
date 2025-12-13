@@ -33,7 +33,7 @@ class Configuration(BaseModel):
 
     # Research agent settings
     max_research_iterations: int = Field(
-        default=3,
+        default=1,
         metadata={"description": "Max tool-calling iterations per research question"}
     )
     max_search_results: int = Field(
@@ -41,7 +41,7 @@ class Configuration(BaseModel):
         metadata={"description": "Max search results per query"}
     )
     max_search_queries: int = Field(
-        default=2,
+        default=1,
         metadata={"description": "Max search queries per tool call"}
     )
     max_content_length: int = Field(

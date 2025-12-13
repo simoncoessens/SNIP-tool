@@ -39,7 +39,8 @@ class QuestionResearchState(MessagesState):
     question: str
     section: str
     company_name: str
-    relevant_articles: list[str] = []
-    rationale: Optional[str] = None
+    # Each sub-question agent loads a dedicated prompt template
+    prompt_template: str
     research_summary: Optional[str] = None
     completed_answers: List[dict] = []
+    iterations: int = 0  # Track number of tool-calling iterations to enforce limits

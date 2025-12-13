@@ -59,9 +59,9 @@ You can override defaults via environment variables or LangGraph UI:
 | ------------------------- | ---------------------- | ------------------------ |
 | `research_model`          | `openai:deepseek-chat` | Model for research       |
 | `summarization_model`     | `openai:deepseek-chat` | Model for summarization  |
-| `max_search_results`      | `3`                    | Results per search query |
-| `max_search_queries`      | `2`                    | Queries per sub-question |
-| `max_concurrent_research` | `3`                    | Parallel research tasks  |
+| `max_search_results`      | `10`                   | Results per search query |
+| `max_search_queries`      | `1`                    | Queries per tool call    |
+| `max_concurrent_research` | `17`                   | Parallel research tasks  |
 
 ## Output Format
 

@@ -10,6 +10,10 @@ class CompanyMatch(BaseModel):
     name: str = Field(description="Company name")
     url: str = Field(description="Company website URL")
     confidence: str = Field(description="Match confidence: exact, high, medium, low")
+    description: Optional[str] = Field(
+        default=None,
+        description="Short company description (1-2 sentences) based on sources",
+    )
 
 
 class CompanyMatchResult(BaseModel):

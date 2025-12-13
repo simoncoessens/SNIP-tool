@@ -12,7 +12,7 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
-from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.prebuilt import ToolNode
 from langgraph.types import Send
 
 from company_researcher.configuration import Configuration
@@ -86,24 +86,10 @@ async def research_agent(
     # Prepare messages
     messages = state.get("messages", [])
     if not messages:
-        # Build short legal context from relevant_articles for this sub-question
-        articles = state.get("relevant_articles") or []
-        short_refs: list[str] = []
-        for ref in articles[:2]:
-            # Normalise whitespace and truncate to keep prompt compact
-            snippet = " ".join(str(ref).strip().splitlines())[:400]
-            if snippet:
-                short_refs.append(snippet)
-        legal_context = "\n".join(short_refs) if short_refs else ""
-
-        # Initial prompt
+        # Initial prompt: each sub-question has its own dedicated template
         prompt = load_prompt(
-            "researcher.jinja",
+            state["prompt_template"],
             company_name=state["company_name"],
-            question=state["question"],
-            section=state.get("section"),
-            legal_context=legal_context or None,
-            rationale=state.get("rationale"),
             max_iterations=cfg.max_research_iterations,
         )
         messages = [HumanMessage(content=prompt)]
@@ -265,13 +251,13 @@ def dispatch_research(state: CompanyResearchState) -> List[Send]:
             {
                 "question": sq["question"],
                 "section": sq["section"],
-                "relevant_articles": sq.get("relevant_articles", []),
-                "rationale": sq.get("rationale"),
+                "prompt_template": f"questions/q{i:02d}.jinja",
                 "company_name": company_name,
-                "messages": []
+                "messages": [],
+                "iterations": 0  # Initialize iteration counter
             }
         )
-        for sq in subquestions
+        for i, sq in enumerate(subquestions)
     ]
 
 
@@ -350,12 +336,59 @@ async def research_summarizer_wrapper(state: QuestionResearchState, config: Runn
 # Graph Construction
 # =============================================================================
 
+def should_continue_with_tools(state: QuestionResearchState, config: RunnableConfig | None = None) -> Literal["tools", "summarize"]:
+    """Conditional function that enforces iteration limit before allowing tool calls."""
+    cfg = Configuration.from_runnable_config(config) if config else Configuration()
+    iterations = state.get("iterations", 0)
+    max_iterations = cfg.max_research_iterations
+    
+    # Get the last message to check if agent wants to call tools
+    messages = state.get("messages", [])
+    if not messages:
+        return "summarize"
+    
+    last_message = messages[-1]
+    
+    # If agent called finish_research or no tool calls, go to summarize
+    if isinstance(last_message, AIMessage):
+        if not last_message.tool_calls:
+            return "summarize"
+        # Check if all tool calls are finish_research
+        if all(tc.get("name") == "finish_research" for tc in last_message.tool_calls):
+            return "summarize"
+        # If we've exceeded max iterations, force summarize
+        if iterations >= max_iterations:
+            return "summarize"
+        # Otherwise allow tools
+        return "tools"
+    
+    # Default to summarize if we can't determine
+    return "summarize"
+
+
+async def tools_with_iteration_counter(
+    state: QuestionResearchState, config: RunnableConfig | None = None
+) -> dict:
+    """Wrapper around ToolNode that increments iteration counter."""
+    tools = get_research_tools()
+    tool_node = ToolNode(tools)
+    
+    # Execute tools
+    result = await tool_node.ainvoke(state, config)
+    
+    # Increment iteration counter
+    current_iterations = state.get("iterations", 0)
+    
+    return {
+        **result,
+        "iterations": current_iterations + 1
+    }
+
+
 # 1. Build Subgraph
 sub_builder = StateGraph(QuestionResearchState)
 sub_builder.add_node("agent", research_agent)
-tools = get_research_tools()
-tool_node = ToolNode(tools)
-sub_builder.add_node("tools", tool_node)
+sub_builder.add_node("tools", tools_with_iteration_counter)
 
 # We need a specialized summarizer that outputs `completed_answers`
 async def summarize_and_format(state: QuestionResearchState, config: RunnableConfig | None = None) -> dict:
@@ -434,7 +467,11 @@ async def summarize_and_format(state: QuestionResearchState, config: RunnableCon
 sub_builder.add_node("summarize", summarize_and_format)
 
 sub_builder.add_edge(START, "agent")
-sub_builder.add_conditional_edges("agent", tools_condition, {"tools": "tools", END: "summarize"})
+sub_builder.add_conditional_edges(
+    "agent", 
+    should_continue_with_tools, 
+    {"tools": "tools", "summarize": "summarize"}
+)
 sub_builder.add_edge("tools", "agent")
 sub_builder.add_edge("summarize", END)
 

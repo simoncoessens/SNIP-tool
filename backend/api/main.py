@@ -80,6 +80,7 @@ except ImportError as e:
 class CompanyMatcherRequest(BaseModel):
     """Request for company matcher."""
     company_name: str
+    country_of_establishment: str
 
 
 class CompanyResearcherRequest(BaseModel):
@@ -354,9 +355,15 @@ async def company_matcher_stream(request: CompanyMatcherRequest):
     
     if not request.company_name.strip():
         raise HTTPException(status_code=400, detail="Company name is required")
+
+    if not request.country_of_establishment.strip():
+        raise HTTPException(
+            status_code=400, detail="Country of establishment is required"
+        )
     
     input_state: CompanyMatcherInputState = {
-        "messages": [HumanMessage(content=request.company_name.strip())]
+        "messages": [HumanMessage(content=request.company_name.strip())],
+        "country_of_establishment": request.country_of_establishment.strip(),
     }
     
     def extract_result(result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -388,10 +395,16 @@ async def company_matcher_invoke(request: CompanyMatcherRequest):
     
     if not request.company_name.strip():
         raise HTTPException(status_code=400, detail="Company name is required")
+
+    if not request.country_of_establishment.strip():
+        raise HTTPException(
+            status_code=400, detail="Country of establishment is required"
+        )
     
     try:
         input_state: CompanyMatcherInputState = {
-            "messages": [HumanMessage(content=request.company_name.strip())]
+            "messages": [HumanMessage(content=request.company_name.strip())],
+            "country_of_establishment": request.country_of_establishment.strip(),
         }
         result = await company_matcher.ainvoke(input_state)
         match_result = result.get("match_result", "")
