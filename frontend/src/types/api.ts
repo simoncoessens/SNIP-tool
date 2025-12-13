@@ -9,6 +9,7 @@
 
 export interface CompanyMatcherRequest {
   company_name: string;
+  country_of_establishment: string;
 }
 
 export interface CompanyMatchResult {

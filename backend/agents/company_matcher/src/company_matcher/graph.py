@@ -6,7 +6,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from jinja2 import Environment, FileSystemLoader
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
@@ -75,8 +75,8 @@ def finish_matching(result_json: str) -> str:
     Args:
         result_json: JSON string with the match result in this format:
         {
-          "exact_match": {"name": "...", "url": "...", "confidence": "exact", "description": "..."} OR null,
-          "suggestions": [{"name": "...", "url": "...", "confidence": "high|medium|low", "description": "..."}, ...]
+          "exact_match": {"name": "...", "url": "...", "confidence": "exact"} OR null,
+          "suggestions": [{"name": "...", "url": "...", "confidence": "high|medium|low"}, ...]
         }
     
     Returns:
@@ -164,37 +164,6 @@ def _parse_result_from_messages(messages: list[str | AIMessage | ToolMessage]) -
             return content[json_start:json_end]
     return "{}"
 
-def _normalize_url(url: Optional[str]) -> str:
-    if not url:
-        return ""
-    u = url.strip().lower()
-    # Normalize trivial differences like trailing slash
-    if u.endswith("/"):
-        u = u[:-1]
-    return u
-
-
-def _normalize_name(name: Optional[str]) -> str:
-    return (name or "").strip().lower()
-
-
-def _dedupe_matches(
-    matches: list[CompanyMatch], *, exclude: Optional[CompanyMatch] = None
-) -> list[CompanyMatch]:
-    """Dedupe matches by normalized url/name, preserving order."""
-    seen: set[tuple[str, str]] = set()
-    if exclude is not None:
-        seen.add((_normalize_url(exclude.url), _normalize_name(exclude.name)))
-
-    out: list[CompanyMatch] = []
-    for m in matches:
-        key = (_normalize_url(m.url), _normalize_name(m.name))
-        if key in seen:
-            continue
-        seen.add(key)
-        out.append(m)
-    return out
-
 
 async def finalize_result(
     state: CompanyMatcherState, config: RunnableConfig | None = None
@@ -210,24 +179,9 @@ async def finalize_result(
 
     exact_match = None
     if parsed.get("exact_match"):
-        try:
-            exact_match = CompanyMatch(**parsed["exact_match"])
-        except Exception:
-            exact_match = None
+        exact_match = CompanyMatch(**parsed["exact_match"])
 
-    suggestions: list[CompanyMatch] = []
-    for s in parsed.get("suggestions", []) or []:
-        try:
-            suggestions.append(CompanyMatch(**s))
-        except Exception:
-            continue
-
-    # Enforce "exact means no suggestions" and prevent duplicates
-    if exact_match is not None:
-        suggestions = []
-    else:
-        suggestions = _dedupe_matches(suggestions)
-        suggestions = suggestions[:MAX_SUGGESTIONS]
+    suggestions = [CompanyMatch(**s) for s in parsed.get("suggestions", [])]
 
     result = CompanyMatchResult(
         input_name=company_name or "Unknown",

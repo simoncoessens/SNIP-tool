@@ -1,4 +1,4 @@
-"""Unified FastAPI app for all Corinna agents with streaming support."""
+"""Unified FastAPI app for all DSA Copilot agents with streaming support."""
 
 import asyncio
 import json
@@ -107,6 +107,9 @@ async def stream_agent_events(
     graph: Runnable,
     input_state: Dict[str, Any],
     config: Optional[Dict[str, Any]] = None,
+    *,
+    include_done: bool = True,
+    on_event: Optional[Callable[[Dict[str, Any]], None]] = None,
 ) -> AsyncGenerator[str, None]:
     """
     Stream all events from a LangGraph agent, including subagents.
@@ -122,10 +125,22 @@ async def stream_agent_events(
             version="v2",
             config=config or {},
         ):
+            if on_event is not None:
+                try:
+                    on_event(event)
+                except Exception:
+                    # Never let event observers break streaming
+                    pass
             # Filter for relevant events
             event_type = event.get("event")
             event_name = event.get("name")
-            node = event.get("node", "unknown")
+            metadata = event.get("metadata") or {}
+            # LangGraph exposes node info in metadata, not as a top-level "node" key.
+            node = (
+                metadata.get("langgraph_node")
+                or event.get("node")
+                or "unknown"
+            )
             
             # Stream LLM tokens - capture all chat model streaming events
             if event_type == "on_chat_model_stream":
@@ -198,8 +213,10 @@ async def stream_agent_events(
             
             # Stream node transitions (when entering/exiting graph nodes)
             elif event_type == "on_chain_start":
-                chain_name = event.get("name", "")
-                if chain_name and ("Graph" in chain_name or "Sequence" in chain_name):
+                chain_name = event.get("name", "") or ""
+                # Emit node transitions for actual LangGraph nodes (identified via metadata).
+                # Fall back to emitting the top-level graph start for visibility.
+                if metadata.get("langgraph_node") or chain_name == "LangGraph":
                     node_start_data = {
                         'type': 'node_start',
                         'node': node,
@@ -208,8 +225,8 @@ async def stream_agent_events(
                     yield f"data: {json.dumps(node_start_data)}\n\n"
             
             elif event_type == "on_chain_end":
-                chain_name = event.get("name", "")
-                if chain_name and ("Graph" in chain_name or "Sequence" in chain_name):
+                chain_name = event.get("name", "") or ""
+                if metadata.get("langgraph_node") or chain_name == "LangGraph":
                     node_end_data = {
                         'type': 'node_end',
                         'node': node,
@@ -217,9 +234,9 @@ async def stream_agent_events(
                     }
                     yield f"data: {json.dumps(node_end_data)}\n\n"
         
-        # Send completion signal
-        done_data = {'type': 'done'}
-        yield f"data: {json.dumps(done_data)}\n\n"
+        # Send completion signal (optional; stream_with_final_result controls ordering)
+        if include_done:
+            yield f"data: {json.dumps(done_data)}\n\n"
         
     except Exception as e:
         error_msg = str(e)[:500]
@@ -228,7 +245,8 @@ async def stream_agent_events(
             'message': error_msg,
         }
         yield f"data: {json.dumps(error_data)}\n\n"
-        yield f"data: {json.dumps(done_data)}\n\n"
+        if include_done:
+            yield f"data: {json.dumps(done_data)}\n\n"
 
 
 async def stream_with_final_result(
@@ -246,51 +264,50 @@ async def stream_with_final_result(
         config: Optional configuration
         extract_result: Optional function to extract result from final state
     """
-    result_queue: asyncio.Queue = asyncio.Queue(maxsize=1)
-    
-    async def run_agent():
-        try:
-            result = await graph.ainvoke(input_state, config=config or {})
-            await result_queue.put(("success", result))
-        except Exception as e:
-            await result_queue.put(("error", str(e)))
-    
-    task = asyncio.create_task(run_agent())
-    
-    # Stream events while agent runs
-    async for chunk in stream_agent_events(graph, input_state, config):
+    # IMPORTANT:
+    # - graph.astream_events() already executes the graph.
+    # - Running graph.ainvoke() in parallel would execute the graph a second time.
+    # We therefore capture the final output from the events stream and emit it once.
+
+    final_output: Optional[Dict[str, Any]] = None
+
+    def observe_event(event: Dict[str, Any]) -> None:
+        nonlocal final_output
+        # Prefer the top-level LangGraph output (root run has no parent_ids)
+        if event.get("event") == "on_chain_end" and not event.get("parent_ids"):
+            output = event.get("data", {}).get("output")
+            if isinstance(output, dict):
+                final_output = output
+
+    # Stream events first (without done), so we can emit result before done.
+    async for chunk in stream_agent_events(
+        graph,
+        input_state,
+        config,
+        include_done=False,
+        on_event=observe_event,
+    ):
         yield chunk
-    
-    # Wait for final result
-    try:
-        status, result = await asyncio.wait_for(result_queue.get(), timeout=300.0)
-        if status == "success":
-            if extract_result:
-                extracted = extract_result(result)
-                if extracted is not None:
-                    result_data = {
-                        'type': 'result',
-                        'data': extracted,
-                    }
-                    yield f"data: {json.dumps(result_data)}\n\n"
-        else:
-            error_data = {
+
+    # Emit final structured result if we managed to capture it.
+    if extract_result and final_output is not None:
+        try:
+            extracted = extract_result(final_output)
+            if extracted is not None:
+                result_data = {
+                    'type': 'result',
+                    'data': extracted,
+                }
+                yield f"data: {json.dumps(result_data)}\n\n"
+        except Exception as e:
+            exception_data = {
                 'type': 'error',
-                'message': result,
+                'message': str(e)[:500],
             }
-            yield f"data: {json.dumps(error_data)}\n\n"
-    except asyncio.TimeoutError:
-        timeout_data = {
-            'type': 'error',
-            'message': 'Timeout waiting for result',
-        }
-        yield f"data: {json.dumps(timeout_data)}\n\n"
-    except Exception as e:
-        exception_data = {
-            'type': 'error',
-            'message': str(e)[:500],
-        }
-        yield f"data: {json.dumps(exception_data)}\n\n"
+            yield f"data: {json.dumps(exception_data)}\n\n"
+
+    # Always finish with a completion signal
+    yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
 
 # =============================================================================
@@ -300,7 +317,7 @@ async def stream_with_final_result(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
-    print("✓ Corinna API ready")
+    print("✓ DSA Copilot API ready")
     print(f"  - Company Matcher: {'✓' if company_matcher else '✗'}")
     print(f"  - Company Researcher: {'✓' if company_researcher else '✗'}")
     print(f"  - Service Categorizer: {'✓' if service_categorizer else '✗'}")
@@ -309,8 +326,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Corinna API",
-    description="Unified API for all Corinna agents with streaming support",
+    title="DSA Copilot API",
+    description="Unified API for all DSA Copilot agents with streaming support",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -608,7 +625,7 @@ async def main_agent_invoke(request: MainAgentRequest):
 def root():
     """API root endpoint."""
     return {
-        "name": "Corinna API",
+        "name": "DSA Copilot API",
         "version": "1.0.0",
         "endpoints": {
             "health": "/health",

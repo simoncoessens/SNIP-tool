@@ -30,7 +30,7 @@ const API_BASE_URL =
 
 // Helpful debug log (visible in browser devtools console)
 if (typeof window !== "undefined") {
-  // eslint-disable-next-line no-console
+   
   console.log("[SNIP] Using API base URL:", API_BASE_URL);
 }
 

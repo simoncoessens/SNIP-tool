@@ -64,6 +64,7 @@ export function CompanyMatcher({
 }: CompanyMatcherProps) {
   const [state, setState] = useState<MatcherState>("input");
   const [companyName, setCompanyName] = useState("");
+  const [countryOfEstablishment, setCountryOfEstablishment] = useState("");
   const [allSources, setAllSources] = useState<SearchSource[]>([]);
   const [visibleSources, setVisibleSources] = useState<SearchSource[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -81,7 +82,7 @@ export function CompanyMatcher({
   }, [allSources]);
 
   const handleSearch = useCallback(async () => {
-    if (!companyName.trim()) return;
+    if (!companyName.trim() || !countryOfEstablishment.trim()) return;
 
     setState("searching");
     setAllSources([]);
@@ -97,7 +98,10 @@ export function CompanyMatcher({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ company_name: companyName.trim() }),
+          body: JSON.stringify({
+            company_name: companyName.trim(),
+            country_of_establishment: countryOfEstablishment.trim(),
+          }),
         }
       );
 
@@ -178,11 +182,12 @@ export function CompanyMatcher({
       setError(err instanceof Error ? err.message : "Unknown error");
       setState("error");
     }
-  }, [companyName]);
+  }, [companyName, countryOfEstablishment]);
 
   const handleReset = () => {
     setState("input");
     setCompanyName("");
+    setCountryOfEstablishment("");
     setAllSources([]);
     setVisibleSources([]);
     setTotalSourceCount(0);
@@ -225,33 +230,66 @@ export function CompanyMatcher({
               Organization Lookup
             </h2>
             <p className="font-sans text-sm text-[#78716c] mb-8">
-              Enter the name of the organization
+              Enter the organization name and country of establishment
             </p>
 
             {/* Input */}
-            <div className="w-full flex gap-2">
+            <div className="w-full flex flex-col gap-3">
               <input
                 type="text"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="Enter organization name..."
+                onKeyDown={(e) => {
+                  if (
+                    e.key === "Enter" &&
+                    companyName.trim() &&
+                    countryOfEstablishment.trim()
+                  ) {
+                    handleSearch();
+                  }
+                }}
+                placeholder="Organization name"
                 className={cn(
-                  "flex-1 h-12 px-4",
+                  "w-full h-12 px-4",
                   "bg-white border border-[#e7e5e4]",
                   "font-sans text-sm text-[#0a0a0a] placeholder:text-[#a8a29e]",
                   "focus:outline-none focus:border-[#0a0a0a]",
                   "transition-colors duration-200"
                 )}
               />
+
+              <input
+                type="text"
+                value={countryOfEstablishment}
+                onChange={(e) => setCountryOfEstablishment(e.target.value)}
+                onKeyDown={(e) => {
+                  if (
+                    e.key === "Enter" &&
+                    companyName.trim() &&
+                    countryOfEstablishment.trim()
+                  ) {
+                    handleSearch();
+                  }
+                }}
+                placeholder="Country of establishment"
+                className={cn(
+                  "w-full h-12 px-4",
+                  "bg-white border border-[#e7e5e4]",
+                  "font-sans text-sm text-[#0a0a0a] placeholder:text-[#a8a29e]",
+                  "focus:outline-none focus:border-[#0a0a0a]",
+                  "transition-colors duration-200"
+                )}
+              />
+
               <Button
                 onClick={handleSearch}
-                disabled={!companyName.trim()}
+                disabled={!companyName.trim() || !countryOfEstablishment.trim()}
                 size="lg"
                 variant="primary"
-                className="px-6"
+                className="w-full h-12 px-6 flex items-center justify-center gap-2"
               >
                 <Search className="w-4 h-4" />
+                <span>Search Organization</span>
               </Button>
             </div>
           </motion.div>
@@ -292,7 +330,7 @@ export function CompanyMatcher({
               {/* Sources - Fixed height container */}
               <div className="h-[156px] relative overflow-hidden">
                 <AnimatePresence mode="popLayout">
-                  {visibleSources.map((source, index) => (
+                  {visibleSources.map((source) => (
                     <motion.div
                       key={source.url}
                       initial={{ opacity: 0, y: -20, height: 0 }}

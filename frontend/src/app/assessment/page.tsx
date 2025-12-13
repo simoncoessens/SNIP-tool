@@ -9,10 +9,12 @@ import {
   CompanyMatcher,
   DeepResearch,
   ResearchReview,
-  Chatbot,
+  ChatPopup,
   ServiceClassification,
   ComplianceDashboard,
   type AssessmentPhase,
+  type ChatPhase,
+  type ChatContext,
 } from "@/components/assessment";
 import { Button } from "@/components/ui";
 import type {
@@ -21,10 +23,6 @@ import type {
   ResearchSection,
 } from "@/types/research";
 import type { CompanyProfile, ComplianceReport } from "@/types/api";
-import {
-  SECTION_LABELS,
-  RESEARCH_SECTIONS as SECTIONS,
-} from "@/types/research";
 
 interface CompanyMatch {
   name: string;
@@ -55,9 +53,125 @@ export default function AssessmentPage() {
     Record<ResearchSection, SubQuestionAnswer[]>
   >({} as Record<ResearchSection, SubQuestionAnswer[]>);
   const [error, setError] = useState<string | null>(null);
-  const [chatContext, setChatContext] = useState<string>("");
   const [complianceReport, setComplianceReport] =
     useState<ComplianceReport | null>(null);
+
+  // Build comprehensive chat context from all visible data
+  const chatContext = useMemo((): ChatContext => {
+    // Determine chat phase based on current state
+    let phase: ChatPhase = "company_match";
+    if (currentPhase === "report") {
+      phase = "report";
+    } else if (currentPhase === "classify") {
+      phase = "classify";
+    } else {
+      switch (researchStep) {
+        case "company_match":
+          phase = "company_match";
+          break;
+        case "deep_research":
+          phase = "deep_research";
+          break;
+        case "review_scope":
+          phase = "review_scope";
+          break;
+        case "review_size":
+          phase = "review_size";
+          break;
+        case "review_type":
+          phase = "review_type";
+          break;
+        default:
+          phase = "company_match";
+      }
+    }
+
+    // Build research data from confirmed answers
+    const researchData: ChatContext["researchData"] = {};
+
+    if (confirmedAnswers["GEOGRAPHICAL SCOPE"]) {
+      researchData.geographicalScope = confirmedAnswers[
+        "GEOGRAPHICAL SCOPE"
+      ].map((a) => ({
+        question: a.question,
+        answer: a.answer,
+        confidence: a.confidence,
+      }));
+    }
+
+    if (confirmedAnswers["COMPANY SIZE"]) {
+      researchData.companySize = confirmedAnswers["COMPANY SIZE"].map((a) => ({
+        question: a.question,
+        answer: a.answer,
+        confidence: a.confidence,
+      }));
+    }
+
+    if (confirmedAnswers["TYPE OF SERVICE PROVIDED"]) {
+      researchData.serviceType = confirmedAnswers[
+        "TYPE OF SERVICE PROVIDED"
+      ].map((a) => ({
+        question: a.question,
+        answer: a.answer,
+        confidence: a.confidence,
+      }));
+    }
+
+    // Build classification data
+    let classificationData: ChatContext["classificationData"];
+    if (complianceReport) {
+      classificationData = {
+        serviceCategory:
+          complianceReport.classification.service_classification
+            .service_category,
+        isIntermediary:
+          complianceReport.classification.service_classification
+            .is_intermediary,
+        isOnlinePlatform:
+          complianceReport.classification.service_classification
+            .is_online_platform,
+        isMarketplace:
+          complianceReport.classification.service_classification.is_marketplace,
+        isSearchEngine:
+          complianceReport.classification.service_classification
+            .is_search_engine,
+        isVLOP: complianceReport.classification.size_designation.is_vlop_vlose,
+        smeExemption:
+          complianceReport.classification.size_designation
+            .qualifies_for_sme_exemption,
+      };
+    }
+
+    // Build compliance data
+    let complianceData: ChatContext["complianceData"];
+    if (complianceReport) {
+      const applicableObligations = complianceReport.obligations.filter(
+        (o) => o.applies
+      );
+      complianceData = {
+        applicableObligations: applicableObligations.length,
+        totalObligations: complianceReport.obligations.length,
+        summary: complianceReport.summary?.substring(0, 500),
+      };
+    }
+
+    return {
+      phase,
+      companyName: selectedCompany?.name || researchResult?.company_name,
+      companyUrl: selectedCompany?.url,
+      researchData:
+        Object.keys(researchData).length > 0 ? researchData : undefined,
+      classificationData,
+      complianceData,
+    };
+  }, [
+    currentPhase,
+    researchStep,
+    selectedCompany,
+    researchResult,
+    confirmedAnswers,
+    complianceReport,
+  ]);
 
   // Build company profile from confirmed answers
   const companyProfile = useMemo((): CompanyProfile => {
@@ -154,24 +268,15 @@ export default function AssessmentPage() {
 
   const handleCompanySelected = (company: CompanyMatch) => {
     setSelectedCompany(company);
-    setChatContext(
-      `User is researching company: ${company.name} (${company.url})`
-    );
   };
 
   const handleStartResearch = (companyName: string) => {
     setResearchStep("deep_research");
-    setChatContext(
-      `Starting deep research for "${companyName}" to determine DSA compliance requirements.`
-    );
   };
 
   const handleResearchComplete = (result: CompanyResearchResult) => {
     setResearchResult(result);
     setResearchStep("review_scope");
-    setChatContext(
-      `Deep research complete for "${result.company_name}". Now reviewing geographical scope findings.`
-    );
   };
 
   const handleResearchError = (errorMsg: string) => {
@@ -189,23 +294,14 @@ export default function AssessmentPage() {
     switch (section) {
       case "GEOGRAPHICAL SCOPE":
         setResearchStep("review_size");
-        setChatContext(
-          `Geographical scope confirmed. Now reviewing company size classification.`
-        );
         break;
       case "COMPANY SIZE":
         setResearchStep("review_type");
-        setChatContext(
-          `Company size confirmed. Now reviewing service type classification.`
-        );
         break;
       case "TYPE OF SERVICE PROVIDED":
         setResearchStep("complete");
         setCompletedPhases(["research"]);
         setCurrentPhase("classify");
-        setChatContext(
-          `All research sections confirmed. Ready to proceed with DSA classification.`
-        );
         break;
     }
   };
@@ -236,11 +332,6 @@ export default function AssessmentPage() {
     setComplianceReport(report);
     setCompletedPhases(["research", "classify"]);
     setCurrentPhase("report");
-    setChatContext(
-      `Classification complete for "${report.company_name}". ${
-        report.obligations.filter((o) => o.applies).length
-      } DSA obligations apply.`
-    );
   };
 
   const handleClassificationError = (errorMsg: string) => {
@@ -485,17 +576,10 @@ export default function AssessmentPage() {
             </AnimatePresence>
           </div>
         </motion.div>
-
-        {/* Right Panel - Chatbot */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="w-[360px] shrink-0 hidden lg:flex border-l border-[#e7e5e4]"
-        >
-          <Chatbot context={chatContext} />
-        </motion.div>
       </div>
+
+      {/* Floating Chat Popup */}
+      <ChatPopup context={chatContext} />
     </motion.main>
   );
 }

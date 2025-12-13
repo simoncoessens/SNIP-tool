@@ -1,12 +1,11 @@
 """State definitions for Company Matcher."""
 
-from typing import Optional
 from langgraph.graph import MessagesState
 
 
 class CompanyMatcherInputState(MessagesState):
-    """Input state - messages containing the company name and country."""
-    country_of_establishment: Optional[str] = None
+    """Input state - messages containing the company name."""
+    pass
 
 
 class CompanyMatcherState(MessagesState):
