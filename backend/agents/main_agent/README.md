@@ -1,4 +1,4 @@
-# DSA Copilot - Main Agent
+# Corinna - Main Agent
 
 ReAct agent for helping users understand and comply with the EU's Digital Services Act.
 

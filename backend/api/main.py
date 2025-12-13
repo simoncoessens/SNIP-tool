@@ -1,4 +1,4 @@
-"""Unified FastAPI app for all DSA Copilot agents with streaming support."""
+"""Unified FastAPI app for all Corinna agents with streaming support."""
 
 import asyncio
 import json
@@ -300,7 +300,7 @@ async def stream_with_final_result(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
-    print("✓ DSA Copilot API ready")
+    print("✓ Corinna API ready")
     print(f"  - Company Matcher: {'✓' if company_matcher else '✗'}")
     print(f"  - Company Researcher: {'✓' if company_researcher else '✗'}")
     print(f"  - Service Categorizer: {'✓' if service_categorizer else '✗'}")
@@ -309,8 +309,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="DSA Copilot API",
-    description="Unified API for all DSA Copilot agents with streaming support",
+    title="Corinna API",
+    description="Unified API for all Corinna agents with streaming support",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -608,7 +608,7 @@ async def main_agent_invoke(request: MainAgentRequest):
 def root():
     """API root endpoint."""
     return {
-        "name": "DSA Copilot API",
+        "name": "Corinna API",
         "version": "1.0.0",
         "endpoints": {
             "health": "/health",

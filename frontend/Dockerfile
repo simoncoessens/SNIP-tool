@@ -1,4 +1,4 @@
-# Frontend Dockerfile for DSA Copilot (Next.js)
+# Frontend Dockerfile for Corinna (Next.js)
 # Multi-stage build for optimization
 
 FROM node:20-alpine AS base

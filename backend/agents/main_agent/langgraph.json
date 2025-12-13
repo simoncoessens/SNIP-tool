@@ -1,7 +1,7 @@
 {
   "dockerfile_lines": [],
   "graphs": {
-    "DSA Copilot": "./src/main_agent/graph.py:main_agent"
+    "Corinna": "./src/main_agent/graph.py:main_agent"
   },
   "python_version": "3.11",
   "env": "../../../.env",

@@ -1,4 +1,4 @@
-"""Main LangGraph workflow for the DSA Copilot Main Agent.
+"""Main LangGraph workflow for the Corinna Main Agent.
 
 ReAct agent with web search and DSA knowledge base retrieval.
 """

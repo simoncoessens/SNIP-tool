@@ -1,2 +1,2 @@
-"""DSA Copilot Backend."""
+"""Corinna Backend."""
 

@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 
 class Configuration(BaseModel):
-    """Configuration for the Main Agent (DSA Copilot)."""
+    """Configuration for the Main Agent (Corinna)."""
 
     # Model settings - using DeepSeek by default (like other agents)
     main_model: str = Field(

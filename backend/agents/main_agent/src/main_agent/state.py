@@ -1,4 +1,4 @@
-"""State definitions for the Main Agent (DSA Copilot)."""
+"""State definitions for the Main Agent (Corinna)."""
 
 from typing import List, Optional
 from langgraph.graph import MessagesState

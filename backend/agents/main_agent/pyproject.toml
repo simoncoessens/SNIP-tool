@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "main_agent"
 version = "0.1.0"
-description = "DSA Copilot Main Agent"
+description = "Corinna Main Agent"
 requires-python = ">=3.11"
 dependencies = [
     "langchain>=0.3.0",

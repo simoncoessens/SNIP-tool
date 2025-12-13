@@ -1,4 +1,4 @@
-# Backend Dockerfile for DSA Copilot API
+# Backend Dockerfile for Corinna API
 # Multi-stage build for optimization
 
 FROM python:3.11-slim as builder

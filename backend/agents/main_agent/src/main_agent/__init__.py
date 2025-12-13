@@ -1,4 +1,4 @@
-"""DSA Copilot Main Agent."""
+"""Corinna Main Agent."""
 
 from main_agent.graph import main_agent
 from main_agent.state import MainAgentInputState, MainAgentState

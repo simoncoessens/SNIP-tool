@@ -1,2 +1,2 @@
-"""DSA Copilot API package."""
+"""Corinna API package."""
 
