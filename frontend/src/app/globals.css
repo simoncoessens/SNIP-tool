@@ -121,9 +121,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
   /* Ensure body respects safe areas on iOS devices with notches */
   /* Use large viewport height - stays constant even when keyboard appears */
-  min-height: 100vh; /* Fallback for older browsers */
-  min-height: 100lvh; /* Large viewport height - prevents shift when keyboard appears */
-  min-height: -webkit-fill-available; /* Additional Safari support */
+  /* Multiple declarations provide fallbacks for different browser support levels */
+  min-height: 100vh;
+  min-height: 100lvh;
+  min-height: -webkit-fill-available;
 }
 
 /* Prevent auto-zoom on input focus on iOS (requires 16px font size minimum) */
@@ -151,34 +152,35 @@ select {
 }
 
 /* Utility classes for viewport units (iOS Safari support) */
+/* Multiple height declarations provide fallbacks - browsers use the last supported value */
 .h-dvh {
-  height: 100vh; /* Fallback */
-  height: 100dvh; /* Dynamic viewport height - adjusts with toolbar */
+  height: 100vh;
+  height: 100dvh;
 }
 
 .h-lvh {
-  height: 100vh; /* Fallback */
-  height: 100lvh; /* Large viewport height - stays constant with keyboard */
+  height: 100vh;
+  height: 100lvh;
 }
 
 .min-h-dvh {
-  min-height: 100vh; /* Fallback */
-  min-height: 100dvh; /* Dynamic viewport height */
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .min-h-lvh {
-  min-height: 100vh; /* Fallback */
-  min-height: 100lvh; /* Large viewport height */
+  min-height: 100vh;
+  min-height: 100lvh;
 }
 
 .max-h-dvh {
-  max-height: 100vh; /* Fallback */
-  max-height: 100dvh; /* Dynamic viewport height */
+  max-height: 100vh;
+  max-height: 100dvh;
 }
 
 .max-h-lvh {
-  max-height: 100vh; /* Fallback */
-  max-height: 100lvh; /* Large viewport height */
+  max-height: 100vh;
+  max-height: 100lvh;
 }
 
 /* =============================================================================

@@ -526,7 +526,6 @@ export default function AssessmentPage() {
       style={{
         // Use large viewport height - stays constant even when keyboard appears
         // This prevents content from shifting into the notch when typing
-        height: "100vh", // Fallback for older browsers
         height: "100lvh", // Large viewport height - assumes keyboard is hidden
       }}
     >

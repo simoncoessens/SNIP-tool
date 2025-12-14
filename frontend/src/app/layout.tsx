@@ -63,7 +63,6 @@ export default function RootLayout({
         className={`${instrumentSerif.variable} ${dmSans.variable} ${jetBrainsMono.variable} antialiased overflow-hidden`}
         style={{
           // Use large viewport height - stays constant even when keyboard appears
-          height: "100vh", // Fallback for older browsers
           height: "100lvh", // Large viewport height - prevents shift when keyboard appears
         }}
       >

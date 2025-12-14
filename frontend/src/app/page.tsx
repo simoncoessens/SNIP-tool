@@ -31,9 +31,8 @@ export default function HomePage() {
       }}
       className="relative flex flex-col overflow-hidden"
       style={{
-        // Use dynamic viewport height for iOS Safari's bottom toolbar
-        height: "100vh", // Fallback for older browsers
-        height: "100dvh", // Modern browsers - adjusts for Safari toolbar
+        // Use large viewport height - stays constant even when keyboard appears
+        height: "100lvh", // Large viewport height for iOS Safari
         // Add safe area padding for devices with notches and home indicators
         paddingTop: "max(0px, env(safe-area-inset-top, 0px))",
         paddingBottom: "max(0px, env(safe-area-inset-bottom, 0px))",
